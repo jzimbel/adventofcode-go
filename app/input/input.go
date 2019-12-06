@@ -1,4 +1,4 @@
-package app
+package input
 
 import (
 	"bufio"
@@ -12,22 +12,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
-)
 
-// Terminal colors
-const (
-	Red int = iota + 1
-	Green
-	Yellow
-	Blue
-)
-
-// ANSI color codes
-const (
-	red    string = "\033[1;31m"
-	green  string = "\033[1;32m"
-	yellow string = "\033[1;33m"
-	blue   string = "\033[1;34m"
+	"github.com/jzimbel/adventofcode-go/app/color"
 )
 
 const (
@@ -39,13 +25,6 @@ var (
 	projectTempDirPath = filepath.Join(os.TempDir(), "adventofcode-go")
 	userSessionIDPath  = filepath.Join(projectTempDirPath, ".USER_SESSION_ID")
 	inputsDirPath      = filepath.Join(projectTempDirPath, "inputs")
-	marks              = map[int]string{
-		Red:    red,
-		Green:  green,
-		Yellow: yellow,
-		Blue:   blue,
-	}
-	endMark = "\033[0m"
 )
 
 func init() {
@@ -57,15 +36,6 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-// Highlight surrounds a value in ANSI escape codes to make it stand out when printed.
-func Highlight(text interface{}, color int) string {
-	mark, ok := marks[color]
-	if !ok {
-		mark = marks[Blue]
-	}
-	return fmt.Sprintf("%s%s%s", mark, text, endMark)
 }
 
 // GetUserSessionID reads user's adventofcode.com session id from file, or asks them for it and stores it in a file.
@@ -86,10 +56,10 @@ func getUserSessionID() (string, error) {
 func readIDFromPrompt() (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("What is your session id? It’s needed for downloading puzzle inputs.")
-	fmt.Printf("Your id is the value of the cookie named %s on %s.\n", Highlight("session", Blue), Highlight(aocURL, Blue))
+	fmt.Printf("Your id is the value of the cookie named %s on %s.\n", color.B("session"), color.B(aocURL))
 	var id string
 	for {
-		fmt.Print(Highlight("> ", Red))
+		fmt.Print(color.R("> "))
 		input, err := reader.ReadBytes('\n')
 		if err != nil {
 			return "", err
@@ -127,8 +97,8 @@ func readIDFromFile(f *os.File) (string, error) {
 	return strings.TrimSpace(string(idBytes[:count])), nil
 }
 
-// GetInput loads an input file into a string and returns it.
-func GetInput(year int, day int) (string, error) {
+// Get loads an input file into a string and returns it.
+func Get(year int, day int) (string, error) {
 	inputFilePath := getInputFilePath(year, day)
 	stat, err := os.Stat(inputFilePath)
 	switch {
@@ -153,8 +123,8 @@ func getInputURL(year int, day int) string {
 
 // Downloads input, saves it to file, and returns the content in a string for convenience
 func downloadInput(year int, day int, inputFilePath string) (string, error) {
-	fmt.Fprintf(os.Stderr, "Input file %s does not exist.\n", Highlight(inputFilePath, Red))
-	fmt.Fprintf(os.Stderr, "Attempting to download puzzle input from %s\n", Highlight(aocURL, Blue))
+	fmt.Fprintf(os.Stderr, "Input file %s does not exist.\n", color.R(inputFilePath))
+	fmt.Fprintf(os.Stderr, "Attempting to download puzzle input from %s\n", color.B(aocURL))
 	sessionID, err := getUserSessionID()
 	if err != nil {
 		return "", err
@@ -201,7 +171,7 @@ func downloadInput(year int, day int, inputFilePath string) (string, error) {
 				return "", err
 			}
 			f.Close()
-			fmt.Fprintf(os.Stderr, "%s Input downloaded and saved to %s.\n", Highlight("Success.", Green), Highlight(inputFilePath, Blue))
+			fmt.Fprintf(os.Stderr, "%s Input downloaded and saved to %s.\n", color.G("Success."), color.B(inputFilePath))
 			return readInputFile(inputFilePath)
 		}
 		return "", fmt.Errorf("server responded with a non-200 status code: %s", resp.Status)
