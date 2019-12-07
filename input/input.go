@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jzimbel/adventofcode-go/app/color"
+	"github.com/jzimbel/adventofcode-go/color"
 )
 
 const (
@@ -97,7 +97,7 @@ func readIDFromFile(f *os.File) (string, error) {
 	return strings.TrimSpace(string(idBytes[:count])), nil
 }
 
-// Get loads an input file into a string and returns it.
+// Get loads the contents of an input file into a string and returns it.
 func Get(year int, day int) (string, error) {
 	inputFilePath := getInputFilePath(year, day)
 	stat, err := os.Stat(inputFilePath)
