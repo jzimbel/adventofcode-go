@@ -5,10 +5,8 @@ import (
 	"os"
 	"strconv"
 
-	// must come before solutions
-	_ "github.com/jzimbel/adventofcode-go/solutioninit"
-
 	"github.com/jzimbel/adventofcode-go/input"
+	_ "github.com/jzimbel/adventofcode-go/solutioninit"
 	"github.com/jzimbel/adventofcode-go/solutions"
 )
 
