@@ -25,8 +25,8 @@ func morePermissiveColorFunc(f func(string) string) func(interface{}) string {
 }
 
 func init() {
-	R = morePermissiveColorFunc(ansi.ColorFunc(ansi.Red))
-	G = morePermissiveColorFunc(ansi.ColorFunc(ansi.Green))
-	Y = morePermissiveColorFunc(ansi.ColorFunc(ansi.Yellow))
-	B = morePermissiveColorFunc(ansi.ColorFunc(ansi.Blue))
+	R = morePermissiveColorFunc(ansi.ColorFunc("red"))
+	G = morePermissiveColorFunc(ansi.ColorFunc("green"))
+	Y = morePermissiveColorFunc(ansi.ColorFunc("yellow"))
+	B = morePermissiveColorFunc(ansi.ColorFunc("blue"))
 }
