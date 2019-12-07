@@ -57,7 +57,8 @@ func part2(masses []int) (sum int) {
 	return
 }
 
-func solve(input string) (*solutions.Solution, error) {
+// Solve provides the day 1 puzzle solution.
+func Solve(input string) (*solutions.Solution, error) {
 	lines := strings.Split(input, "\n")
 	var masses []int
 	for _, line := range lines {
@@ -68,8 +69,4 @@ func solve(input string) (*solutions.Solution, error) {
 		masses = append(masses, mass)
 	}
 	return &solutions.Solution{Part1: part1(masses), Part2: part2(masses)}, nil
-}
-
-func init() {
-	solutions.Registry.Register(2019, 1, solve)
 }
