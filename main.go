@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/jzimbel/adventofcode-go/color"
 	"github.com/jzimbel/adventofcode-go/input"
 	_ "github.com/jzimbel/adventofcode-go/solutioninit"
 	"github.com/jzimbel/adventofcode-go/solutions"
@@ -32,6 +33,15 @@ func getArgs() (int, int, bool) {
 	return year, day, true
 }
 
+func printSolution(s *solutions.Solution, year int, day int) {
+	if s != nil {
+		fmt.Println("Answer to part 1:", color.G(s.Part1))
+		fmt.Println("Answer to part 2:", color.G(s.Part2))
+	} else {
+		fmt.Fprintf(os.Stderr, "No solution for year %d, day %d yet.\n", year, day)
+	}
+}
+
 func main() {
 	year, day, ok := getArgs()
 	if !ok {
@@ -48,9 +58,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Could not find solution code for year %d, day %d.\n", year, day)
 		os.Exit(1)
 	}
-	result, err := solver(input)
+	s, err := solver(input)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
 	}
-	fmt.Println("Solution:", result.Part1, result.Part2)
+	printSolution(s, year, day)
 }

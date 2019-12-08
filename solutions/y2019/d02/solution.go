@@ -34,15 +34,12 @@ func part1(codes []int) (int, error) {
 	return compute(codes, 12, 2)
 }
 
-func part2(codes []int) (int, error) {
-	freshCodes := func() []int {
-		newCodes := make([]int, len(codes))
-		copy(newCodes, codes)
-		return newCodes
-	}
+func part2(codesImmutable []int) (int, error) {
+	codes := make([]int, len(codesImmutable))
 	for noun := 0; noun < 100; noun++ {
 		for verb := 0; verb < 100; verb++ {
-			result, err := compute(freshCodes(), noun, verb)
+			copy(codes, codesImmutable)
+			result, err := compute(codes, noun, verb)
 			if err != nil {
 				return 0, err
 			}
