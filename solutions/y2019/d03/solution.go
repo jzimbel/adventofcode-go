@@ -8,14 +8,23 @@ import (
 	"github.com/jzimbel/adventofcode-go/solutions"
 )
 
-// dir represents a unit vector in one of the cardinal directions.
-// dir[0] = x component, dir[y] = y component
-type dir [2]int
+var (
+	origin = point{}
+	dirs   = map[byte]*dir{
+		'D': &dir{0, 1},
+		'L': &dir{-1, 0},
+		'R': &dir{1, 0},
+		'U': &dir{0, -1},
+	}
+)
 
 type point struct {
 	x int
 	y int
 }
+
+// dir represents a unit vector in one of the cardinal directions.
+type dir point
 
 // record of whether a point has been visited and how long the path was when it was first visited.
 type record struct {
@@ -29,22 +38,19 @@ type cursor struct {
 	dist int
 }
 
+// move a cursor 1 unit in the given direction.
+func (c *cursor) move(d *dir) {
+	c.p.x += d.x
+	c.p.y += d.y
+	c.dist++
+}
+
 // grid holds a map that records which points have been visited by which paths,
 // as well as cursors for the two paths.
 type grid struct {
 	g map[point][2]record
 	c [2]cursor
 }
-
-var (
-	origin = point{}
-	dirs   = map[byte]*dir{
-		'D': &dir{0, 1},
-		'L': &dir{-1, 0},
-		'R': &dir{1, 0},
-		'U': &dir{0, -1},
-	}
-)
 
 func newGrid() *grid {
 	return &grid{
@@ -53,24 +59,29 @@ func newGrid() *grid {
 	}
 }
 
+func (g *grid) moveCursor(wireNum int, d *dir) {
+	g.c[wireNum].move(d)
+}
+
+func (g *grid) getRecordsAtCursor(wireNum int) (r [2]record, ok bool) {
+	r, ok = g.g[g.c[wireNum].p]
+	return
+}
+
+func (g *grid) setRecordsAtCursor(wireNum int, r [2]record) {
+	g.g[g.c[wireNum].p] = r
+}
+
 // draw a new point on the grid for the given wire by moving that wire's cursor in the given direction.
 func (g *grid) draw(d *dir, wireNum int) {
-	g.c[wireNum].p.x += d[0]
-	g.c[wireNum].p.y += d[1]
-	g.c[wireNum].dist++
-	records, ok := g.g[g.c[wireNum].p]
-	if ok {
-		if !records[wireNum].visited {
-			records[wireNum].visited = true
-			records[wireNum].pathLength = g.c[wireNum].dist
-			g.g[g.c[wireNum].p] = records
-		}
-	} else {
+	g.moveCursor(wireNum, d)
+	records, ok := g.getRecordsAtCursor(wireNum)
+	if !ok {
 		records = [2]record{}
-		records[wireNum].visited = true
-		records[wireNum].pathLength = g.c[wireNum].dist
-		g.g[g.c[wireNum].p] = records
 	}
+	records[wireNum].visited = true
+	records[wireNum].pathLength = g.c[wireNum].dist
+	g.setRecordsAtCursor(wireNum, records)
 }
 
 // draw a full wire on the grid based on the given move set.
@@ -94,9 +105,8 @@ func (g *grid) intersections() []cursor {
 }
 
 // getMoves decomposes the input into slices of 1-step movements.
-func getMoves(input string) [][]*dir {
+func getMoves(input string) (moves [2][]*dir) {
 	wires := strings.Split(input, "\n")
-	moves := make([][]*dir, len(wires))
 
 	for i, wire := range wires {
 		vecs := strings.Split(wire, ",")
@@ -124,7 +134,10 @@ func manhattan(p1 point, p2 point) int {
 	)
 }
 
-func part1(moves [][]*dir) (minDist int) {
+// solve finds the answers to parts 1 and 2 simultaneously.
+// minDist = part 1 solution
+// minPathLength = part 2 solution
+func solve(moves [2][]*dir) (minDist, minPathLength int) {
 	g := newGrid()
 	for wireNum := range moves {
 		g.drawPath(moves[wireNum], wireNum)
@@ -132,23 +145,11 @@ func part1(moves [][]*dir) (minDist int) {
 
 	crosses := g.intersections()
 	minDist = manhattan(origin, crosses[0].p)
+	minPathLength = crosses[0].dist
 	for _, c := range crosses[1:] {
 		if dist := manhattan(origin, c.p); dist < minDist {
 			minDist = dist
 		}
-	}
-	return
-}
-
-func part2(moves [][]*dir) (minPathLength int) {
-	g := newGrid()
-	for wireNum := range moves {
-		g.drawPath(moves[wireNum], wireNum)
-	}
-
-	crosses := g.intersections()
-	minPathLength = crosses[0].dist
-	for _, c := range crosses[1:] {
 		if c.dist < minPathLength {
 			minPathLength = c.dist
 		}
@@ -158,6 +159,6 @@ func part2(moves [][]*dir) (minPathLength int) {
 
 // Solve provides the day 3 puzzle solution.
 func Solve(input string) (*solutions.Solution, error) {
-	moves := getMoves(input)
-	return &solutions.Solution{Part1: part1(moves), Part2: part2(moves)}, nil
+	minDist, minPathLength := solve(getMoves(input))
+	return &solutions.Solution{Part1: minDist, Part2: minPathLength}, nil
 }
