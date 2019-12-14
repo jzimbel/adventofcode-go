@@ -17,8 +17,8 @@ var (
 
 // getDigit(5287, 0) == 7
 // getDigit(5287, 2) == 2
-func getDigit(n, place int) int {
-	return n / int(math.Pow(10, float64(place))) % 10
+func getDigit(n, tenPow int) int {
+	return n / int(math.Pow(10, float64(tenPow))) % 10
 }
 
 func isValidPart1(n int) bool {
@@ -74,6 +74,7 @@ func isValidPart2(n int) bool {
 
 // solve concurrently checks numbers in the range [lower,upper] using given predicate function pred, and returns the number that passed.
 func solve(lower, upper int, pred func(int) bool) (validCount int) {
+	// range is inclusive, so we add 1
 	nRange := upper - lower + 1
 
 	var wg sync.WaitGroup
@@ -88,10 +89,14 @@ func solve(lower, upper int, pred func(int) bool) (validCount int) {
 			wg.Done()
 		}(i)
 	}
+
+	// close the channel once all goroutines are done
 	go func() {
 		wg.Wait()
 		close(c)
 	}()
+
+	// increment validCount for each time a value was sent to c
 	for range c {
 		validCount++
 	}
