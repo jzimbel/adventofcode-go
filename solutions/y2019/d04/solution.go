@@ -1,12 +1,12 @@
 package d04
 
 import (
-	"math"
 	"regexp"
 	"strconv"
 	"sync"
 
 	"github.com/jzimbel/adventofcode-go/solutions"
+	"github.com/jzimbel/adventofcode-go/solutions/common"
 )
 
 type nothing struct{}
@@ -15,19 +15,13 @@ var (
 	inputPattern = regexp.MustCompile(`^(\d+)-(\d+)$`)
 )
 
-// getDigit(5287, 0) == 7
-// getDigit(5287, 2) == 2
-func getDigit(n, tenPow int) int {
-	return n / int(math.Pow(10, float64(tenPow))) % 10
-}
-
 func isValidPart1(n int) bool {
 	var d int
 	var repeat bool
 
-	prev := getDigit(n, 5)
+	prev := common.GetDigit(n, 5)
 	for i := 4; i >= 0; prev, i = d, i-1 {
-		d = getDigit(n, i)
+		d = common.GetDigit(n, i)
 		switch {
 		case d < prev:
 			return false
@@ -42,10 +36,10 @@ func isValidPart2(n int) bool {
 	var d int
 	var repeat bool
 
-	prev := getDigit(n, 5)
+	prev := common.GetDigit(n, 5)
 	repeatCount := 1
 	for i := 4; i >= 0; prev, i = d, i-1 {
-		d = getDigit(n, i)
+		d = common.GetDigit(n, i)
 
 		// digit must be >= prev
 		if d < prev {
