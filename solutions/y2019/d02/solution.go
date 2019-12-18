@@ -1,36 +1,12 @@
 package d02
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/jzimbel/adventofcode-go/solutions"
 	"github.com/jzimbel/adventofcode-go/solutions/y2019/interpreter"
 )
-
-// original intcode interpreter, now replaced by the shared one
-func compute(codes []int, noun int, verb int) (int, error) {
-	codes[1] = noun
-	codes[2] = verb
-	ipt := 0
-
-Run:
-	for {
-		switch codes[ipt] {
-		case 1:
-			codes[codes[ipt+3]] = codes[codes[ipt+1]] + codes[codes[ipt+2]]
-		case 2:
-			codes[codes[ipt+3]] = codes[codes[ipt+1]] * codes[codes[ipt+2]]
-		case 99:
-			break Run
-		default:
-			return 0, fmt.Errorf("unknown opcode encountered: %d", codes[ipt])
-		}
-		ipt += 4
-	}
-	return codes[0], nil
-}
 
 func part1(codes []int) (int, error) {
 	return interpreter.NewWithNounVerb(codes, 12, 2, nil, nil).Run()
