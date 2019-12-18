@@ -1,51 +1,27 @@
 package d05
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
-	"github.com/jzimbel/adventofcode-go/color"
 	"github.com/jzimbel/adventofcode-go/solutions"
 	"github.com/jzimbel/adventofcode-go/solutions/y2019/interpreter"
 )
 
-func input() (v int) {
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		fmt.Print(color.R("> "))
-		b, err := reader.ReadBytes('\n')
-		s := string(bytes.TrimSpace(b))
-		if err != nil {
-			fmt.Println(color.R("Rejected"))
-			continue
-		}
-		v, err = strconv.Atoi(s)
-		if err != nil {
-			fmt.Println(color.R("Rejected"))
-			continue
-		}
-		fmt.Println(color.G("Accepted"))
-		break
-	}
-	return
-}
-
-func output(n int) {
-	fmt.Println(n)
-}
-
-func part1(codes []int) (int, error) {
+func run(codes []int, systemID int) (int, error) {
 	var lastOutput int
-	myOutput := func(n int) {
-		lastOutput = n
-		output(n)
-	}
 
-	_, err := interpreter.New(codes, input, myOutput).Run()
+	_, err := interpreter.New(
+		codes,
+		func() int {
+			return systemID
+		},
+		func(n int) {
+			lastOutput = n
+			fmt.Println(n)
+		},
+	).Run()
 	if err != nil {
 		return 0, err
 	}
@@ -64,10 +40,14 @@ func Solve(input string) (*solutions.Solution, error) {
 		codes[i] = intn
 	}
 
-	answer1, err := part1(codes)
+	answer1, err := run(codes, 1)
+	if err != nil {
+		return nil, err
+	}
+	answer2, err := run(codes, 5)
 	if err != nil {
 		return nil, err
 	}
 
-	return &solutions.Solution{Part1: answer1}, nil
+	return &solutions.Solution{Part1: answer1, Part2: answer2}, nil
 }
