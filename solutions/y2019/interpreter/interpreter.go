@@ -71,7 +71,7 @@ func NewWithNounVerb(codes []int, noun int, verb int, input func() int, output f
 // Run runs the interpreter until it encounters a halt opcode.
 func (i *Interpreter) Run() (int, error) {
 	var o *opDesc
-	for deleteMe := 0; ; deleteMe++ {
+	for {
 		o = getOpDesc(i.codes[i.ipt])
 		if o.proc.f == nil {
 			// halt code encountered
