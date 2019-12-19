@@ -97,7 +97,7 @@ func solve(lower, upper int, pred func(int) bool) (validCount int) {
 	return
 }
 
-// Solve provides the day 3 puzzle solution.
+// Solve provides the day 4 puzzle solution.
 func Solve(input string) (*solutions.Solution, error) {
 	bounds := inputPattern.FindStringSubmatch(input)[1:]
 	lower, _ := strconv.Atoi(bounds[0])

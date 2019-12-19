@@ -28,7 +28,7 @@ func run(codes []int, systemID int) (int, error) {
 	return lastOutput, nil
 }
 
-// Solve provides the day 2 puzzle solution.
+// Solve provides the day 5 puzzle solution.
 func Solve(input string) (*solutions.Solution, error) {
 	numbers := strings.Split(input, ",")
 	codes := make([]int, len(numbers))
