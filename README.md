@@ -4,9 +4,10 @@ This project holds my Go solutions + utilities for **[Advent of Code](https://ad
 
 ## Prereqs
 To run solutions and tests, the following must be true:
-1. The `$GOPATH` env var is set
-2. This repository is cloned into `$GOPATH/src/github.com/jzimbel/adventofcode-go`
-3. Your `$PATH` includes `$GOPATH/bin`
+- You have Go [installed](https://golang.org/dl/)
+- The `$GOPATH` env var is set
+- This repository is cloned into `$GOPATH/src/github.com/jzimbel/adventofcode-go`
+- Your `$PATH` includes `$GOPATH/bin`
 
 ## Run it
 ```sh
@@ -16,7 +17,7 @@ $ go install github.com/jzimbel/adventofcode-go # compiles and installs project 
 $ adventofcode-go <year> <day>
 ```
 
-If the input for the solution you're trying to run hasn't already been saved, the program will try to download it from the Advent of Code site first. If this is your first time downloading an input, you'll be asked to provide your unique session id. It's held in a cookie named `session` saved by the site--you can view it using your browser's dev tools or a number of cookie-viewing browser extensions.
+If the input for the solution you're trying to run hasn't already been saved, the program will try to download it from the Advent of Code site first. If this is your first time downloading an input, you'll be asked to provide your unique session id. It's held in a cookie named `session` saved by the site—you can view it using your browser's dev tools or a number of cookie-viewing browser extensions.
 
 ## Test it
 ```sh
