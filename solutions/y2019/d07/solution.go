@@ -5,9 +5,9 @@ import (
 	"strings"
 	"sync"
 
-	"modernc.org/mathutil"
 	"github.com/jzimbel/adventofcode-go/solutions"
 	"github.com/jzimbel/adventofcode-go/solutions/y2019/interpreter"
+	"modernc.org/mathutil"
 )
 
 const (
@@ -32,14 +32,14 @@ func (ps *phaseSettings) Swap(i, j int) {
 	ps[i], ps[j] = ps[j], ps[i]
 }
 
-func phaseSettingsGenerator() <-chan *phaseSettings {
+func phaseSettingsGenerator(offset uint) <-chan *phaseSettings {
 	ch := make(chan *phaseSettings)
 
 	go func() {
 		defer close(ch)
 		ps := &phaseSettings{}
 		for i := uint(0); i < ampCount; i++ {
-			ps[i] = i
+			ps[i] = i + offset
 		}
 		mathutil.PermutationFirst(ps)
 
@@ -56,22 +56,28 @@ func phaseSettingsGenerator() <-chan *phaseSettings {
 
 func makeInputDevice(phaseSetting uint, ch <-chan int) func() int {
 	callCount := 0
-	return func() int {
+	return func() (n int) {
 		defer func() { callCount++ }()
 		switch callCount {
 		case 0:
-			return int(phaseSetting)
-		case 1:
-			return <-ch
+			n = int(phaseSetting)
 		default:
-			panic("Input called more times than expected")
+			n = <-ch
 		}
+		return
 	}
 }
 
 func makeOutputDevice(ch chan<- int) func(int) {
 	return func(n int) {
 		ch <- n
+	}
+}
+
+func makeLoopingOutputDevice(loop chan<- int, output chan<- int) func(int) {
+	return func(n int) {
+		loop <- n
+		output <- n
 	}
 }
 
@@ -91,10 +97,56 @@ func runAmplifiers(codes []int, settings *phaseSettings) (signal int) {
 	return <-chs[ampCount]
 }
 
+func runAmplifierLoop(codes []int, settings *phaseSettings) (signal int) {
+	// 0 -> Amp A -> Amp B -> Amp C -> Amp D -> Amp E -> (to thrusters upon Amp E halt)
+	//    0        1        2        3        4        0
+	// 5 amps, 5 channels
+	chs := [ampCount]chan int{}
+	for i := range chs {
+		chs[i] = make(chan int)
+	}
+	// final amplifier also sends to this channel so that we can capture outputs
+	output := make(chan int)
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < ampCount; i++ {
+		wg.Add(1)
+		go func(icpy int) {
+			defer func() {
+				wg.Done()
+			}()
+			var outDevice func(int)
+			if icpy == ampCount-1 {
+				outDevice = makeLoopingOutputDevice(chs[(icpy+1)%ampCount], output)
+			} else {
+				outDevice = makeOutputDevice(chs[(icpy+1)%ampCount])
+			}
+			interpreter.New(codes, makeInputDevice(settings[icpy], chs[icpy]), outDevice).Run()
+		}(i)
+	}
+
+	go func() {
+		defer func() {
+			for i := range chs {
+				close(chs[i])
+			}
+			close(output)
+		}()
+		wg.Wait()
+	}()
+
+	chs[0] <- initialInput
+	var finalSignal int
+	for n := range output {
+		finalSignal = n
+	}
+	return finalSignal
+}
+
 func part1(codes []int) (maxSignal int) {
 	ch := make(chan int)
 	wg := sync.WaitGroup{}
-	for settings := range phaseSettingsGenerator() {
+	for settings := range phaseSettingsGenerator(0) {
 		wg.Add(1)
 		go func(settings *phaseSettings) {
 			defer wg.Done()
@@ -107,7 +159,29 @@ func part1(codes []int) (maxSignal int) {
 	}()
 
 	for signal := range ch {
+		if signal > maxSignal {
+			maxSignal = signal
+		}
+	}
+	return
+}
 
+func part2(codes []int) (maxSignal int) {
+	ch := make(chan int)
+	wg := sync.WaitGroup{}
+	for settings := range phaseSettingsGenerator(5) {
+		wg.Add(1)
+		go func(settings *phaseSettings) {
+			defer wg.Done()
+			ch <- runAmplifierLoop(codes, settings)
+		}(settings)
+	}
+	go func() {
+		defer close(ch)
+		wg.Wait()
+	}()
+
+	for signal := range ch {
 		if signal > maxSignal {
 			maxSignal = signal
 		}
@@ -126,5 +200,5 @@ func Solve(input string) (*solutions.Solution, error) {
 		}
 		codes[i] = intn
 	}
-	return &solutions.Solution{Part1: part1(codes)}, nil
+	return &solutions.Solution{ /*Part1: part1(codes),*/ Part2: part2(codes)}, nil
 }
