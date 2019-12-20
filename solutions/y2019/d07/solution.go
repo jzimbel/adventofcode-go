@@ -131,15 +131,12 @@ func runAmplifierLoop(codes []int, settings *phaseSettings) (signal int) {
 	// final amplifier also sends to this channel so that we can capture outputs
 	output := make(chan int)
 
-	wg := sync.WaitGroup{}
 	for i := 0; i < ampCount; i++ {
-		wg.Add(1)
 		go func(icpy int) {
-			defer func() {
-				wg.Done()
-			}()
 			var outDevice func(int)
 			if icpy == ampCount-1 {
+				// when this interpreter halts, the whole amplifier loop is done
+				defer close(output)
 				outDevice = makeLoopingOutputDevice(chs[(icpy+1)%ampCount], output)
 			} else {
 				outDevice = makeOutputDevice(chs[(icpy+1)%ampCount])
@@ -147,16 +144,6 @@ func runAmplifierLoop(codes []int, settings *phaseSettings) (signal int) {
 			interpreter.New(codes, makeInputDevice(settings[icpy], chs[icpy]), outDevice).Run()
 		}(i)
 	}
-
-	go func() {
-		defer func() {
-			for i := range chs {
-				close(chs[i])
-			}
-			close(output)
-		}()
-		wg.Wait()
-	}()
 
 	chs[0] <- initialInput
 	var finalSignal int
