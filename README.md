@@ -10,7 +10,9 @@ To run solutions and tests, the following must be true:
 
 ## Run it
 ```sh
-$ go install github.com/jzimbel/adventofcode-go
+$ cd $GOPATH/src/github.com/jzimbel/adventofcode-go
+$ go get ./...                                  # installs all project dependencies
+$ go install github.com/jzimbel/adventofcode-go # compiles and installs project to $GOPATH/bin/
 $ adventofcode-go <year> <day>
 ```
 
