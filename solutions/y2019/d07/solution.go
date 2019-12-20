@@ -60,7 +60,7 @@ func phaseSettingsGenerator(offset uint) <-chan *phaseSettings {
 }
 
 // makeInputDevice returns an input function to be used by the amplifier intcode program.
-// The first time the input is called, it return the phase setting for the amplifier.
+// The first time the input is called, it returns the phase setting for the amplifier.
 // All future calls return values received from the given channel.
 func makeInputDevice(phaseSetting uint, ch <-chan int) func() int {
 	callCount := 0
