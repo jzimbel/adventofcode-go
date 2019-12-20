@@ -66,10 +66,9 @@ func makeInputDevice(phaseSetting uint, ch <-chan int) func() int {
 	callCount := 0
 	return func() (n int) {
 		defer func() { callCount++ }()
-		switch callCount {
-		case 0:
+		if callCount == 0 {
 			n = int(phaseSetting)
-		default:
+		} else {
 			n = <-ch
 		}
 		return
