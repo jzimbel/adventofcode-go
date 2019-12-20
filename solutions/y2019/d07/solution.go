@@ -119,14 +119,11 @@ func runAmplifierLoop(codes []int, settings *phaseSettings) (signal int) {
 	//    0        1        2        3        4        0
 	// 5 amps, 5 channels
 	chs := [ampCount]chan int{}
-	for i := range chs {
-		if i == 0 {
-			// use a buffered channel for the first channel so that it can receive
-			// one more value that won't be consumed during the final iteration of the loop
-			chs[i] = make(chan int, 1)
-		} else {
-			chs[i] = make(chan int)
-		}
+	// use a buffered channel for the first channel so that it can receive
+	// one more value that won't be consumed during the final iteration of the loop
+	chs[0] = make(chan int, 1)
+	for i := range chs[1:] {
+		chs[i+1] = make(chan int)
 	}
 	// final amplifier also sends to this channel so that we can capture outputs
 	output := make(chan int)
@@ -178,12 +175,12 @@ func run(codes []int, phaseSettingOffset uint, runner func([]int, *phaseSettings
 	return
 }
 
-func part1(codes []int) int {
-	return run(codes, 0, runAmplifiers)
+func part1(codes []int, ch chan<- int) {
+	ch <- run(codes, 0, runAmplifiers)
 }
 
-func part2(codes []int) int {
-	return run(codes, 5, runAmplifierLoop)
+func part2(codes []int, ch chan<- int) {
+	ch <- run(codes, 5, runAmplifierLoop)
 }
 
 // Solve provides the day 7 puzzle solution.
@@ -197,6 +194,9 @@ func Solve(input string) (*solutions.Solution, error) {
 		}
 		codes[i] = intn
 	}
+	ch1, ch2 := make(chan int), make(chan int)
 
-	return &solutions.Solution{Part1: part1(codes), Part2: part2(codes)}, nil
+	go part1(codes, ch1)
+	go part2(codes, ch2)
+	return &solutions.Solution{Part1: <-ch1, Part2: <-ch2}, nil
 }
