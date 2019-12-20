@@ -1,11 +1,11 @@
 package d07
 
 import (
-	"math"
 	"strconv"
 	"strings"
 	"sync"
 
+	"modernc.org/mathutil"
 	"github.com/jzimbel/adventofcode-go/solutions"
 	"github.com/jzimbel/adventofcode-go/solutions/y2019/interpreter"
 )
@@ -17,39 +17,40 @@ const (
 	maxPhase     uint = 4
 )
 
-func pow2(p uint) uint {
-	return uint(math.Pow(2, float64(p)))
+// Implements sort.Interface to take advantage of Permutation functions
+type phaseSettings [ampCount]uint
+
+func (ps *phaseSettings) Len() int {
+	return len(ps)
 }
 
-// phaseSettingsGenerator generates permutations of phase settings.
-func phaseSettingsGenerator() <-chan [ampCount]uint {
-	var uniqueMask uint
-	for i := 0; i < ampCount; i++ {
-		uniqueMask <<= 1
-		uniqueMask++
-	}
+func (ps *phaseSettings) Less(i, j int) bool {
+	return ps[i] < ps[j]
+}
 
-	var compare uint
-	ch := make(chan [ampCount]uint)
+func (ps *phaseSettings) Swap(i, j int) {
+	ps[i], ps[j] = ps[j], ps[i]
+}
+
+func phaseSettingsGenerator() <-chan *phaseSettings {
+	ch := make(chan *phaseSettings)
 
 	go func() {
 		defer close(ch)
-		// there are nice algorithms to do this, but I'm lazy
-		for a := minPhase; a <= maxPhase; a++ {
-			for b := minPhase; b <= maxPhase; b++ {
-				for c := minPhase; c <= maxPhase; c++ {
-					for d := minPhase; d <= maxPhase; d++ {
-						for e := minPhase; e <= maxPhase; e++ {
-							compare = pow2(a) | pow2(b) | pow2(c) | pow2(d) | pow2(e)
-							if uniqueMask^compare == 0 {
-								ch <- [...]uint{a, b, c, d, e}
-							}
-						}
-					}
-				}
-			}
+		ps := &phaseSettings{}
+		for i := uint(0); i < ampCount; i++ {
+			ps[i] = i
+		}
+		mathutil.PermutationFirst(ps)
+
+		var done bool
+		for !done {
+			psCopy := *ps
+			ch <- &psCopy
+			done = !mathutil.PermutationNext(ps)
 		}
 	}()
+
 	return ch
 }
 
@@ -74,7 +75,7 @@ func makeOutputDevice(ch chan<- int) func(int) {
 	}
 }
 
-func runAmplifiers(codes []int, settings [ampCount]uint) (signal int) {
+func runAmplifiers(codes []int, settings *phaseSettings) (signal int) {
 	// 0 -> Amp A -> Amp B -> Amp C -> Amp D -> Amp E -> (to thrusters)
 	// 5 amps, 6 channels
 	chs := [ampCount + 1]chan int{}
@@ -95,7 +96,7 @@ func part1(codes []int) (maxSignal int) {
 	wg := sync.WaitGroup{}
 	for settings := range phaseSettingsGenerator() {
 		wg.Add(1)
-		go func(settings [ampCount]uint) {
+		go func(settings *phaseSettings) {
 			defer wg.Done()
 			ch <- runAmplifiers(codes, settings)
 		}(settings)
