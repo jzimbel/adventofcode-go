@@ -17,7 +17,7 @@ const (
 	maxPhase     uint = 4
 )
 
-// Implements sort.Interface to take advantage of Permutation functions
+// Implements sort.Interface to take advantage of mathutil Permutation functions
 type phaseSettings [ampCount]uint
 
 func (ps *phaseSettings) Len() int {
@@ -32,6 +32,11 @@ func (ps *phaseSettings) Swap(i, j int) {
 	ps[i], ps[j] = ps[j], ps[i]
 }
 
+// phaseSettingsGenerator returns a channel that receives all permutations of phase settings and then closes.
+// ch1 := phaseSettingsGenerator(0)
+// ch1 will receive [0 1 2 3 4], [0 1 2 4 3], ...
+// ch2 := phaseSettingsGenerator(5)
+// ch2 will receive [5 6 7 8 9], [5 6 7 9 8], ...
 func phaseSettingsGenerator(offset uint) <-chan *phaseSettings {
 	ch := make(chan *phaseSettings)
 
@@ -54,6 +59,9 @@ func phaseSettingsGenerator(offset uint) <-chan *phaseSettings {
 	return ch
 }
 
+// makeInputDevice returns an input function to be used by the amplifier intcode program.
+// The first time the input is called, it return the phase setting for the amplifier.
+// All future calls return values received from the given channel.
 func makeInputDevice(phaseSetting uint, ch <-chan int) func() int {
 	callCount := 0
 	return func() (n int) {
@@ -68,12 +76,17 @@ func makeInputDevice(phaseSetting uint, ch <-chan int) func() int {
 	}
 }
 
+// makeOutputDevice returns an output function to be used by the amplifier intcode program.
+// This function sends its argument to the given channel.
 func makeOutputDevice(ch chan<- int) func(int) {
 	return func(n int) {
 		ch <- n
 	}
 }
 
+// makeLoopingOutputDevice is like makeOutputDevice, but the function it produces sends values to
+// two given channels instead of one. This allows for signals to be passed in a loop but also received
+// by an outside function that's interested in the final output of the amplifiers.
 func makeLoopingOutputDevice(loop chan<- int, output chan<- int) func(int) {
 	return func(n int) {
 		loop <- n
@@ -81,6 +94,7 @@ func makeLoopingOutputDevice(loop chan<- int, output chan<- int) func(int) {
 	}
 }
 
+// runAmplifiers runs a series of amplifiers with the given phase settings and returns their output.
 func runAmplifiers(codes []int, settings *phaseSettings) (signal int) {
 	// 0 -> Amp A -> Amp B -> Amp C -> Amp D -> Amp E -> (to thrusters)
 	// 5 amps, 6 channels
@@ -88,22 +102,31 @@ func runAmplifiers(codes []int, settings *phaseSettings) (signal int) {
 	for i := range chs {
 		chs[i] = make(chan int)
 	}
+
 	for i := 0; i < ampCount; i++ {
 		go func(icpy int) {
 			interpreter.New(codes, makeInputDevice(settings[icpy], chs[icpy]), makeOutputDevice(chs[icpy+1])).Run()
 		}(i)
 	}
+
 	chs[0] <- initialInput
 	return <-chs[ampCount]
 }
 
+// runAmplifierLoop runs a series of amplifiers in a loop with the given phase settings and returns their final output when they halt.
 func runAmplifierLoop(codes []int, settings *phaseSettings) (signal int) {
 	// 0 -> Amp A -> Amp B -> Amp C -> Amp D -> Amp E -> (to thrusters upon Amp E halt)
 	//    0        1        2        3        4        0
 	// 5 amps, 5 channels
 	chs := [ampCount]chan int{}
 	for i := range chs {
-		chs[i] = make(chan int)
+		if i == 0 {
+			// use a buffered channel for the first channel so that it can receive
+			// one more value that won't be consumed during the final iteration of the loop
+			chs[i] = make(chan int, 1)
+		} else {
+			chs[i] = make(chan int)
+		}
 	}
 	// final amplifier also sends to this channel so that we can capture outputs
 	output := make(chan int)
@@ -176,6 +199,7 @@ func part2(codes []int) (maxSignal int) {
 			ch <- runAmplifierLoop(codes, settings)
 		}(settings)
 	}
+
 	go func() {
 		defer close(ch)
 		wg.Wait()
@@ -200,5 +224,5 @@ func Solve(input string) (*solutions.Solution, error) {
 		}
 		codes[i] = intn
 	}
-	return &solutions.Solution{ /*Part1: part1(codes),*/ Part2: part2(codes)}, nil
+	return &solutions.Solution{Part1: part1(codes), Part2: part2(codes)}, nil
 }
