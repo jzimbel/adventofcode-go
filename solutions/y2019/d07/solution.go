@@ -1,6 +1,7 @@
 package d07
 
 import (
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -18,17 +19,33 @@ const (
 
 var codes []int
 
+func pow2(p uint) uint {
+	return uint(math.Pow(2, float64(p)))
+}
+
+// phaseSettingsGenerator generates permutations of phase settings.
 func phaseSettingsGenerator() <-chan [ampCount]uint {
+	var uniqueMask uint
+	for i := 0; i < ampCount; i++ {
+		uniqueMask <<= 1
+		uniqueMask++
+	}
+
+	var compare uint
 	ch := make(chan [ampCount]uint)
+
 	go func() {
 		defer close(ch)
-		// I'm sure there's a more concise/parameterized way to do this...
+		// there are nice algorithms to do this, but I'm lazy
 		for a := minPhase; a <= maxPhase; a++ {
 			for b := minPhase; b <= maxPhase; b++ {
 				for c := minPhase; c <= maxPhase; c++ {
 					for d := minPhase; d <= maxPhase; d++ {
 						for e := minPhase; e <= maxPhase; e++ {
-							ch <- [...]uint{a, b, c, d, e}
+							compare = pow2(a) | pow2(b) | pow2(c) | pow2(d) | pow2(e)
+							if uniqueMask^compare == 0 {
+								ch <- [...]uint{a, b, c, d, e}
+							}
 						}
 					}
 				}
