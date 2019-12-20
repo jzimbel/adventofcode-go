@@ -17,8 +17,6 @@ const (
 	maxPhase     uint = 4
 )
 
-var codes []int
-
 func pow2(p uint) uint {
 	return uint(math.Pow(2, float64(p)))
 }
@@ -76,7 +74,7 @@ func makeOutputDevice(ch chan<- int) func(int) {
 	}
 }
 
-func runAmplifiers(settings [ampCount]uint) (signal int) {
+func runAmplifiers(codes []int, settings [ampCount]uint) (signal int) {
 	// 0 -> Amp A -> Amp B -> Amp C -> Amp D -> Amp E -> (to thrusters)
 	// 5 amps, 6 channels
 	chs := [ampCount + 1]chan int{}
@@ -92,14 +90,14 @@ func runAmplifiers(settings [ampCount]uint) (signal int) {
 	return <-chs[ampCount]
 }
 
-func part1() (maxSignal int) {
+func part1(codes []int) (maxSignal int) {
 	ch := make(chan int)
 	wg := sync.WaitGroup{}
 	for settings := range phaseSettingsGenerator() {
 		wg.Add(1)
 		go func(settings [ampCount]uint) {
 			defer wg.Done()
-			ch <- runAmplifiers(settings)
+			ch <- runAmplifiers(codes, settings)
 		}(settings)
 	}
 	go func() {
@@ -119,8 +117,7 @@ func part1() (maxSignal int) {
 // Solve provides the day 7 puzzle solution.
 func Solve(input string) (*solutions.Solution, error) {
 	numbers := strings.Split(input, ",")
-	// this assigns the intcode source to a package-level variable for ease of access
-	codes = make([]int, len(numbers))
+	codes := make([]int, len(numbers))
 	for i, n := range numbers {
 		intn, err := strconv.Atoi(n)
 		if err != nil {
@@ -128,5 +125,5 @@ func Solve(input string) (*solutions.Solution, error) {
 		}
 		codes[i] = intn
 	}
-	return &solutions.Solution{Part1: part1()}, nil
+	return &solutions.Solution{Part1: part1(codes)}, nil
 }
