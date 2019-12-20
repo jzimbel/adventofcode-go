@@ -153,14 +153,14 @@ func runAmplifierLoop(codes []int, settings *phaseSettings) (signal int) {
 	return finalSignal
 }
 
-func part1(codes []int) (maxSignal int) {
+func run(codes []int, phaseSettingOffset uint, runner func([]int, *phaseSettings) int) (maxSignal int) {
 	ch := make(chan int)
 	wg := sync.WaitGroup{}
-	for settings := range phaseSettingsGenerator(0) {
+	for settings := range phaseSettingsGenerator(phaseSettingOffset) {
 		wg.Add(1)
 		go func(settings *phaseSettings) {
 			defer wg.Done()
-			ch <- runAmplifiers(codes, settings)
+			ch <- runner(codes, settings)
 		}(settings)
 	}
 	go func() {
@@ -176,28 +176,12 @@ func part1(codes []int) (maxSignal int) {
 	return
 }
 
-func part2(codes []int) (maxSignal int) {
-	ch := make(chan int)
-	wg := sync.WaitGroup{}
-	for settings := range phaseSettingsGenerator(5) {
-		wg.Add(1)
-		go func(settings *phaseSettings) {
-			defer wg.Done()
-			ch <- runAmplifierLoop(codes, settings)
-		}(settings)
-	}
+func part1(codes []int) int {
+	return run(codes, 0, runAmplifiers)
+}
 
-	go func() {
-		defer close(ch)
-		wg.Wait()
-	}()
-
-	for signal := range ch {
-		if signal > maxSignal {
-			maxSignal = signal
-		}
-	}
-	return
+func part2(codes []int) int {
+	return run(codes, 5, runAmplifierLoop)
 }
 
 // Solve provides the day 7 puzzle solution.
