@@ -156,6 +156,7 @@ func runAmplifierLoop(codes []int, settings *phaseSettings) (signal int) {
 func run(codes []int, phaseSettingOffset uint, runner func([]int, *phaseSettings) int) (maxSignal int) {
 	ch := make(chan int)
 	wg := sync.WaitGroup{}
+
 	for settings := range phaseSettingsGenerator(phaseSettingOffset) {
 		wg.Add(1)
 		go func(settings *phaseSettings) {
@@ -163,6 +164,7 @@ func run(codes []int, phaseSettingOffset uint, runner func([]int, *phaseSettings
 			ch <- runner(codes, settings)
 		}(settings)
 	}
+
 	go func() {
 		defer close(ch)
 		wg.Wait()
@@ -195,5 +197,6 @@ func Solve(input string) (*solutions.Solution, error) {
 		}
 		codes[i] = intn
 	}
+
 	return &solutions.Solution{Part1: part1(codes), Part2: part2(codes)}, nil
 }
