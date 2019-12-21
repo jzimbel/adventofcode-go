@@ -94,7 +94,7 @@ func part2(im image) (combined *layer) {
 	return
 }
 
-// Solve provides the day 7 puzzle solution.
+// Solve provides the day 8 puzzle solution.
 func Solve(input string) (*solutions.Solution, error) {
 	numLayers := len(input) / layerSize
 	im := make(image, numLayers)

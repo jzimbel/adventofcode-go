@@ -10,6 +10,7 @@ import (
 	"github.com/jzimbel/adventofcode-go/solutions/y2019/d06"
 	"github.com/jzimbel/adventofcode-go/solutions/y2019/d07"
 	"github.com/jzimbel/adventofcode-go/solutions/y2019/d08"
+	"github.com/jzimbel/adventofcode-go/solutions/y2019/d09"
 )
 
 func init() {
@@ -22,4 +23,5 @@ func init() {
 	r.Register(y, 6, d06.Solve)
 	r.Register(y, 7, d07.Solve)
 	r.Register(y, 8, d08.Solve)
+	r.Register(y, 9, d09.Solve)
 }

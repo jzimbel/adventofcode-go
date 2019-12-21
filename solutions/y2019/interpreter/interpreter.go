@@ -8,9 +8,11 @@ import (
 )
 
 // Interpreter executes a set of instructions.
+// Instantiate with one of the `New*` functions.
 type Interpreter struct {
-	codes  []int
+	mem    map[uint]int
 	ipt    uint
+	rpt    uint
 	input  func() int
 	output func(int)
 }
@@ -41,6 +43,7 @@ type set map[uint]struct{}
 const (
 	mPosition mode = iota
 	mImmediate
+	mRelative
 )
 
 const (
@@ -53,6 +56,7 @@ const (
 	oJumpIfZero
 	oLessThan
 	oEquals
+	oMoveRpt
 	oHalt op = 99
 )
 
@@ -60,18 +64,22 @@ var procedures map[op]*procedure
 
 // New interpreter.
 func New(codes []int, input func() int, output func(int)) *Interpreter {
-	c := make([]int, len(codes))
-	copy(c, codes)
-	return &Interpreter{codes: c, input: input, output: output}
+	c := make(map[uint]int, len(codes))
+	for i, n := range codes {
+		c[uint(i)] = n
+	}
+	return &Interpreter{mem: c, input: input, output: output}
 }
 
 // NewWithNounVerb produces an interpreter with codes at indices 1 and 2 replaced by noun and verb.
 func NewWithNounVerb(codes []int, noun int, verb int, input func() int, output func(int)) *Interpreter {
-	c := make([]int, len(codes))
-	copy(c, codes)
+	c := make(map[uint]int, len(codes))
+	for i, n := range codes {
+		c[uint(i)] = n
+	}
 	c[1] = noun
 	c[2] = verb
-	return &Interpreter{codes: c, input: input, output: output}
+	return &Interpreter{mem: c, input: input, output: output}
 }
 
 // Run runs the interpreter until it encounters a halt opcode.
@@ -79,7 +87,7 @@ func (i *Interpreter) Run() (int, error) {
 	var o *opDesc
 	var skipIncrement bool
 	for {
-		o = getOpDesc(i.codes[i.ipt])
+		o = getOpDesc(i.get(i.ipt))
 		if o.proc.f == nil {
 			// halt code encountered
 			break
@@ -96,18 +104,39 @@ func (i *Interpreter) Run() (int, error) {
 			i.ipt += o.proc.arity + 1
 		}
 	}
-	return i.codes[0], nil
+	return i.get(0), nil
+}
+
+func (i *Interpreter) get(addr uint) (val int) {
+	val, ok := i.mem[addr]
+	if !ok {
+		val = 0
+	}
+	return
+}
+
+func (i *Interpreter) set(addr uint, val int) {
+	i.mem[addr] = val
 }
 
 func (i *Interpreter) getParam(offset uint, m mode, isWriteArg bool) (v int) {
 	if isWriteArg {
-		v = i.codeAt(offset)
+		switch m {
+		case mPosition:
+			v = i.codeAt(offset)
+		case mRelative:
+			v = int(i.rpt) + i.codeAt(offset)
+		default:
+			panic("immediate mode used for write arg")
+		}
 	} else {
 		switch m {
 		case mPosition:
-			v = i.codes[i.codeAt(offset)]
+			v = i.get(uint(i.codeAt(offset)))
 		case mImmediate:
 			v = i.codeAt(offset)
+		case mRelative:
+			v = i.get(i.rpt + uint(i.codeAt(offset)))
 		default:
 			panic(fmt.Sprintf("unknown parameter mode encountered: %d", m))
 		}
@@ -116,7 +145,7 @@ func (i *Interpreter) getParam(offset uint, m mode, isWriteArg bool) (v int) {
 }
 
 func (i *Interpreter) codeAt(offset uint) int {
-	return i.codes[i.ipt+offset]
+	return i.get(i.ipt + offset)
 }
 
 func makeSet(values ...uint) (s set) {
@@ -144,17 +173,17 @@ func getOpDesc(o int) *opDesc {
 }
 
 func add(i *Interpreter, args ...int) (skipIncrement bool) {
-	i.codes[args[2]] = args[0] + args[1]
+	i.set(uint(args[2]), args[0]+args[1])
 	return
 }
 
 func mul(i *Interpreter, args ...int) (skipIncrement bool) {
-	i.codes[args[2]] = args[0] * args[1]
+	i.set(uint(args[2]), args[0]*args[1])
 	return
 }
 
 func input(i *Interpreter, args ...int) (skipIncrement bool) {
-	i.codes[args[0]] = i.input()
+	i.set(uint(args[0]), i.input())
 	return
 }
 
@@ -181,19 +210,26 @@ func jumpIfZero(i *Interpreter, args ...int) (skipIncrement bool) {
 
 func lessThan(i *Interpreter, args ...int) (skipIncrement bool) {
 	if args[0] < args[1] {
-		i.codes[args[2]] = 1
+		i.set(uint(args[2]), 1)
 	} else {
-		i.codes[args[2]] = 0
+		i.set(uint(args[2]), 0)
 	}
 	return
 }
 
 func equals(i *Interpreter, args ...int) (skipIncrement bool) {
 	if args[0] == args[1] {
-		i.codes[args[2]] = 1
+		i.set(uint(args[2]), 1)
 	} else {
-		i.codes[args[2]] = 0
+		i.set(uint(args[2]), 0)
 	}
+	return
+}
+
+func moveRpt(i *Interpreter, args ...int) (skipIncrement bool) {
+	// might underflow if arg is negative, but we're going
+	// to trust that none of the intcode programs will do that
+	i.rpt = uint(int(i.rpt) + args[0])
 	return
 }
 
@@ -219,11 +255,6 @@ func init() {
 			arity:     1,
 			writeArgs: makeSet(),
 		},
-		oHalt: {
-			f:         nil,
-			arity:     0,
-			writeArgs: makeSet(),
-		},
 		oJumpIfNonZero: {
 			f:         jumpIfNonZero,
 			arity:     2,
@@ -243,6 +274,16 @@ func init() {
 			f:         equals,
 			arity:     3,
 			writeArgs: makeSet(2),
+		},
+		oMoveRpt: {
+			f:         moveRpt,
+			arity:     1,
+			writeArgs: makeSet(),
+		},
+		oHalt: {
+			f:         nil,
+			arity:     0,
+			writeArgs: makeSet(),
 		},
 	}
 }
