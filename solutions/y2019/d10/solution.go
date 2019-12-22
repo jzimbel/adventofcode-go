@@ -23,30 +23,27 @@ type point struct {
 
 type grid map[point]struct{}
 
-// memoizedGCD returns a function that gives the greatest common
-// denominator of two ints.
-func memoizedGCD() (gcd func(int, int) int) {
-	// stores memoized results
-	gcdCache := make(map[[2]int]int, width*height)
+// stores memoized results
+var gcdCache map[[2]int]int
 
-	gcd = func(a, b int) (n int) {
-		var key [2]int
-		if a < b {
-			key = [...]int{a, b}
+// gcd returns the greatest common denominator of two ints.
+// Results are memoized for a slight performance bump.
+func gcd(a, b int) (n int) {
+	var key [2]int
+	if a < b {
+		key = [...]int{a, b}
+	} else {
+		key = [...]int{b, a}
+	}
+
+	var ok bool
+	if n, ok = gcdCache[key]; !ok {
+		if b != 0 {
+			n = gcd(b, a%b)
 		} else {
-			key = [...]int{b, a}
+			n = a
 		}
-
-		var ok bool
-		if n, ok = gcdCache[key]; !ok {
-			if b != 0 {
-				n = gcd(b, a%b)
-			} else {
-				n = a
-			}
-			gcdCache[key] = n
-		}
-		return
+		gcdCache[key] = n
 	}
 	return
 }
@@ -57,7 +54,7 @@ func axisDistances(p1, p2 *point) (xDist int, yDist int) {
 	return
 }
 
-func isBlocked(p1, p2 *point, g grid, gcd func(int, int) int) (blocked bool) {
+func isBlocked(p1, p2 *point, g grid) (blocked bool) {
 	denom := gcd(axisDistances(p1, p2))
 	xStepSize, yStepSize := (p2.x-p1.x)/denom, (p2.y-p1.y)/denom
 	for i := 1; i < denom; i++ {
@@ -69,14 +66,14 @@ func isBlocked(p1, p2 *point, g grid, gcd func(int, int) int) (blocked bool) {
 	return
 }
 
-func part1(g grid, gcd func(int, int) int) (maxVisibleCount int, optimalPoint point) {
+func part1(g grid) (maxVisibleCount int, optimalPoint point) {
 	for p1 := range g {
 		var visibleCount int
 		for p2 := range g {
 			if p1 == p2 {
 				continue
 			}
-			if !isBlocked(&p1, &p2, g, gcd) {
+			if !isBlocked(&p1, &p2, g) {
 				visibleCount++
 			}
 		}
@@ -86,16 +83,6 @@ func part1(g grid, gcd func(int, int) int) (maxVisibleCount int, optimalPoint po
 		}
 	}
 	return
-}
-
-// getCenteredGrid creates and returns a new grid with all
-// points translated such that p at the origin.
-func getCenteredGrid(g grid, p point) (cg grid) {
-	cg = make(grid, len(g))
-	for p2 := range g {
-		cg[point{p2.x - p.x, p2.y - p.y}] = struct{}{}
-	}
-	return cg
 }
 
 type rPoint struct {
@@ -142,7 +129,7 @@ func clockwiseAngleFromUp(p1, p2 *point) (θ float64) {
 	return
 }
 
-func part2(g grid, gcd func(int, int) int, optimalPoint point) int {
+func part2(g grid, optimalPoint point) int {
 	// record angle and distance from center of each asteroid in a sorted slice of struct {rad float64; dist float64}
 	rp := make(rPoints, 0, len(g))
 	for p := range g {
@@ -158,7 +145,7 @@ func part2(g grid, gcd func(int, int) int, optimalPoint point) int {
 		nextRp := make(rPoints, 0, len(rp))
 		remove := make([]*point, 0, len(rp))
 		for i := range rp {
-			if isBlocked(&optimalPoint, &rp[i].orig, g, gcd) {
+			if isBlocked(&optimalPoint, &rp[i].orig, g) {
 				nextRp = append(nextRp, rp[i])
 			} else {
 				vaporizedCount++
@@ -189,13 +176,12 @@ func Solve(input string) (*solutions.Solution, error) {
 			}
 		}
 	}
-	gcd := memoizedGCD()
+	maxVisibleCount, optimalPoint := part1(g)
 
-	maxVisibleCount, optimalPoint := part1(g, gcd)
-
-	return &solutions.Solution{Part1: maxVisibleCount, Part2: part2(g, gcd, optimalPoint)}, nil
+	return &solutions.Solution{Part1: maxVisibleCount, Part2: part2(g, optimalPoint)}, nil
 }
 
 func init() {
 	epsilon = math.Nextafter(1, 2) - 1
+	gcdCache = make(map[[2]int]int, width*height)
 }
