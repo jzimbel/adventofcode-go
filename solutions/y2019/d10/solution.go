@@ -128,13 +128,13 @@ func dist(p1, p2 *point) float64 {
 	return math.Sqrt(math.Pow(math.Abs(float64(p1.x-p2.x)), 2) + math.Pow(math.Abs(float64(p1.y-p2.y)), 2))
 }
 
-// clockwiseAngleFromUp calculates the angle from -y in radians, moving clockwise.
+// clockwiseAngleFromUp calculates the angle from -y in radians of the ray from p1 to p2, moving clockwise.
 // Atan2 normally takes arguments as (y,x), but we reverse them and negate x in order to
 // have polar θ = 0 be Cartesian (0,-1) and increasing θ move in a clockwise direction.
 // Atan2 also produces values in range [-π, π], but we want them to be [0, 2π],
 // so when it would normally produce a negative, we use 2π + atan2Result.
-func clockwiseAngleFromUp(p *point) (θ float64) {
-	newX, newY := -p.y, p.x
+func clockwiseAngleFromUp(p1, p2 *point) (θ float64) {
+	newX, newY := -(p2.y - p1.y), p2.x-p1.x
 	θ = math.Atan2(float64(newY), float64(newX))
 	if θ < 0 {
 		θ = 2*math.Pi + θ
@@ -142,15 +142,14 @@ func clockwiseAngleFromUp(p *point) (θ float64) {
 	return
 }
 
-func part2(cg grid, gcd func(int, int) int, optimalPoint point) int {
+func part2(g grid, gcd func(int, int) int, optimalPoint point) int {
 	// record angle and distance from center of each asteroid in a sorted slice of struct {rad float64; dist float64}
-	rp := make(rPoints, 0, len(cg))
-	origin := point{}
-	for p := range cg {
-		if p == origin {
+	rp := make(rPoints, 0, len(g))
+	for p := range g {
+		if p == optimalPoint {
 			continue
 		}
-		rp = append(rp, rPoint{r: dist(&origin, &p), θ: clockwiseAngleFromUp(&p), orig: p})
+		rp = append(rp, rPoint{r: dist(&optimalPoint, &p), θ: clockwiseAngleFromUp(&optimalPoint, &p), orig: p})
 	}
 	sort.Sort(rp)
 
@@ -159,19 +158,19 @@ func part2(cg grid, gcd func(int, int) int, optimalPoint point) int {
 		nextRp := make(rPoints, 0, len(rp))
 		remove := make([]*point, 0, len(rp))
 		for i := range rp {
-			if isBlocked(&origin, &rp[i].orig, cg, gcd) {
+			if isBlocked(&optimalPoint, &rp[i].orig, g, gcd) {
 				nextRp = append(nextRp, rp[i])
 			} else {
 				vaporizedCount++
 				if vaporizedCount == 200 {
-					return (optimalPoint.x+rp[i].orig.x)*100 + (optimalPoint.y + rp[i].orig.y)
+					return rp[i].orig.x*100 + rp[i].orig.y
 				}
 				remove = append(remove, &rp[i].orig)
 			}
 		}
 
 		for i := range remove {
-			delete(cg, *remove[i])
+			delete(g, *remove[i])
 		}
 		rp = nextRp
 	}
@@ -194,8 +193,6 @@ func Solve(input string) (*solutions.Solution, error) {
 
 	maxVisibleCount, optimalPoint := part1(g, gcd)
 
-	// now center the grid on the optimal point for part 2
-	g = getCenteredGrid(g, optimalPoint)
 	return &solutions.Solution{Part1: maxVisibleCount, Part2: part2(g, gcd, optimalPoint)}, nil
 }
 
