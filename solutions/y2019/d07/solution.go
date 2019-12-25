@@ -1,8 +1,6 @@
 package d07
 
 import (
-	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/jzimbel/adventofcode-go/solutions"
@@ -94,7 +92,7 @@ func makeLoopingOutputDevice(loop chan<- int, output chan<- int) func(int) {
 }
 
 // runAmplifiers runs a series of amplifiers with the given phase settings and returns their output.
-func runAmplifiers(codes []int, settings *phaseSettings) (signal int) {
+func runAmplifiers(initMem interpreter.Program, settings *phaseSettings) (signal int) {
 	// 0 -> Amp A -> Amp B -> Amp C -> Amp D -> Amp E -> (to thrusters)
 	// 5 amps, 6 channels
 	chs := [ampCount + 1]chan int{}
@@ -104,7 +102,7 @@ func runAmplifiers(codes []int, settings *phaseSettings) (signal int) {
 
 	for i := 0; i < ampCount; i++ {
 		go func(icpy int) {
-			interpreter.New(codes, makeInputDevice(settings[icpy], chs[icpy]), makeOutputDevice(chs[icpy+1])).Run()
+			interpreter.New(initMem, makeInputDevice(settings[icpy], chs[icpy]), makeOutputDevice(chs[icpy+1])).Run()
 		}(i)
 	}
 
@@ -113,7 +111,7 @@ func runAmplifiers(codes []int, settings *phaseSettings) (signal int) {
 }
 
 // runAmplifierLoop runs a series of amplifiers in a loop with the given phase settings and returns their final output when they halt.
-func runAmplifierLoop(codes []int, settings *phaseSettings) (signal int) {
+func runAmplifierLoop(initMem interpreter.Program, settings *phaseSettings) (signal int) {
 	// 0 -> Amp A -> Amp B -> Amp C -> Amp D -> Amp E -> (to thrusters upon Amp E halt)
 	//    0        1        2        3        4        0
 	// 5 amps, 5 channels
@@ -137,7 +135,7 @@ func runAmplifierLoop(codes []int, settings *phaseSettings) (signal int) {
 			} else {
 				outDevice = makeOutputDevice(chs[(icpy+1)%ampCount])
 			}
-			interpreter.New(codes, makeInputDevice(settings[icpy], chs[icpy]), outDevice).Run()
+			interpreter.New(initMem, makeInputDevice(settings[icpy], chs[icpy]), outDevice).Run()
 		}(i)
 	}
 
@@ -149,7 +147,7 @@ func runAmplifierLoop(codes []int, settings *phaseSettings) (signal int) {
 	return finalSignal
 }
 
-func run(codes []int, phaseSettingOffset uint, runner func([]int, *phaseSettings) int) (maxSignal int) {
+func run(initMem interpreter.Program, phaseSettingOffset uint, runner func(interpreter.Program, *phaseSettings) int) (maxSignal int) {
 	ch := make(chan int)
 	wg := sync.WaitGroup{}
 
@@ -157,7 +155,7 @@ func run(codes []int, phaseSettingOffset uint, runner func([]int, *phaseSettings
 		wg.Add(1)
 		go func(settings *phaseSettings) {
 			defer wg.Done()
-			ch <- runner(codes, settings)
+			ch <- runner(initMem, settings)
 		}(settings)
 	}
 
@@ -174,28 +172,20 @@ func run(codes []int, phaseSettingOffset uint, runner func([]int, *phaseSettings
 	return
 }
 
-func part1(codes []int, ch chan<- int) {
-	ch <- run(codes, 0, runAmplifiers)
+func part1(initMem interpreter.Program, ch chan<- int) {
+	ch <- run(initMem, 0, runAmplifiers)
 }
 
-func part2(codes []int, ch chan<- int) {
-	ch <- run(codes, 5, runAmplifierLoop)
+func part2(initMem interpreter.Program, ch chan<- int) {
+	ch <- run(initMem, 5, runAmplifierLoop)
 }
 
 // Solve provides the day 7 puzzle solution.
 func Solve(input string) (*solutions.Solution, error) {
-	numbers := strings.Split(input, ",")
-	codes := make([]int, len(numbers))
-	for i, n := range numbers {
-		intn, err := strconv.Atoi(n)
-		if err != nil {
-			return nil, err
-		}
-		codes[i] = intn
-	}
+	initMem := interpreter.ParseMem(input)
 	ch1, ch2 := make(chan int), make(chan int)
 
-	go part1(codes, ch1)
-	go part2(codes, ch2)
+	go part1(initMem, ch1)
+	go part2(initMem, ch2)
 	return &solutions.Solution{Part1: <-ch1, Part2: <-ch2}, nil
 }

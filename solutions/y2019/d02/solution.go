@@ -1,21 +1,18 @@
 package d02
 
 import (
-	"strconv"
-	"strings"
-
 	"github.com/jzimbel/adventofcode-go/solutions"
 	"github.com/jzimbel/adventofcode-go/solutions/y2019/interpreter"
 )
 
-func part1(codes []int) (int, error) {
-	return interpreter.NewWithNounVerb(codes, 12, 2, nil, nil).Run()
+func part1(initMem interpreter.Program) (int, error) {
+	return interpreter.NewWithNounVerb(initMem, 12, 2, nil, nil).Run()
 }
 
-func part2(codes []int) (int, error) {
+func part2(initMem interpreter.Program) (int, error) {
 	for noun := 0; noun < 100; noun++ {
 		for verb := 0; verb < 100; verb++ {
-			result, err := interpreter.NewWithNounVerb(codes, noun, verb, nil, nil).Run()
+			result, err := interpreter.NewWithNounVerb(initMem, noun, verb, nil, nil).Run()
 			if err != nil {
 				return 0, err
 			}
@@ -29,21 +26,13 @@ func part2(codes []int) (int, error) {
 
 // Solve provides the day 2 puzzle solution.
 func Solve(input string) (*solutions.Solution, error) {
-	numbers := strings.Split(input, ",")
-	codes := make([]int, len(numbers))
-	for i, n := range numbers {
-		intn, err := strconv.Atoi(n)
-		if err != nil {
-			return nil, err
-		}
-		codes[i] = intn
-	}
+	initMem := interpreter.ParseMem(input)
 
-	answer1, err := part1(codes)
+	answer1, err := part1(initMem)
 	if err != nil {
 		return nil, err
 	}
-	answer2, err := part2(codes)
+	answer2, err := part2(initMem)
 	if err != nil {
 		return nil, err
 	}

@@ -3,14 +3,19 @@ package interpreter
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/jzimbel/adventofcode-go/solutions/common"
 )
 
+// Program code / memory of a running Program.
+type Program map[uint]int
+
 // Interpreter executes a set of instructions.
 // Instantiate with one of the `New*` functions.
 type Interpreter struct {
-	mem    map[uint]int
+	mem    Program
 	ipt    uint
 	rpt    uint
 	input  func() int
@@ -63,23 +68,34 @@ const (
 var procedures map[op]*procedure
 
 // New interpreter.
-func New(codes []int, input func() int, output func(int)) *Interpreter {
-	c := make(map[uint]int, len(codes))
-	for i, n := range codes {
-		c[uint(i)] = n
+func New(initMem Program, input func() int, output func(int)) (i *Interpreter) {
+	mem := make(Program, len(initMem))
+	for i, n := range initMem {
+		mem[i] = n
 	}
-	return &Interpreter{mem: c, input: input, output: output}
+	return &Interpreter{mem: mem, input: input, output: output}
 }
 
-// NewWithNounVerb produces an interpreter with codes at indices 1 and 2 replaced by noun and verb.
-func NewWithNounVerb(codes []int, noun int, verb int, input func() int, output func(int)) *Interpreter {
-	c := make(map[uint]int, len(codes))
-	for i, n := range codes {
-		c[uint(i)] = n
+// NewWithNounVerb produces an interpreter with memory at addresses 1 and 2 replaced by noun and verb.
+func NewWithNounVerb(initMem Program, noun int, verb int, input func() int, output func(int)) *Interpreter {
+	mem := make(Program, len(initMem))
+	for i, n := range initMem {
+		mem[i] = n
 	}
-	c[1] = noun
-	c[2] = verb
-	return &Interpreter{mem: c, input: input, output: output}
+	mem[1] = noun
+	mem[2] = verb
+	return &Interpreter{mem: mem, input: input, output: output}
+}
+
+// ParseMem parses the initial memory/instructions of an intcode program from a puzzle input.
+func ParseMem(input string) (mem Program) {
+	numbers := strings.Split(input, ",")
+	mem = make(Program, len(numbers))
+	for i, n := range numbers {
+		intn, _ := strconv.Atoi(n)
+		mem[uint(i)] = intn
+	}
+	return
 }
 
 // Run runs the interpreter until it encounters a halt opcode.

@@ -2,18 +2,16 @@ package d05
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/jzimbel/adventofcode-go/solutions"
 	"github.com/jzimbel/adventofcode-go/solutions/y2019/interpreter"
 )
 
-func run(codes []int, systemID int) (int, error) {
+func run(initMem interpreter.Program, systemID int) (int, error) {
 	var lastOutput int
 
 	_, err := interpreter.New(
-		codes,
+		initMem,
 		func() int {
 			return systemID
 		},
@@ -30,21 +28,13 @@ func run(codes []int, systemID int) (int, error) {
 
 // Solve provides the day 5 puzzle solution.
 func Solve(input string) (*solutions.Solution, error) {
-	numbers := strings.Split(input, ",")
-	codes := make([]int, len(numbers))
-	for i, n := range numbers {
-		intn, err := strconv.Atoi(n)
-		if err != nil {
-			return nil, err
-		}
-		codes[i] = intn
-	}
+	initMem := interpreter.ParseMem(input)
 
-	answer1, err := run(codes, 1)
+	answer1, err := run(initMem, 1)
 	if err != nil {
 		return nil, err
 	}
-	answer2, err := run(codes, 5)
+	answer2, err := run(initMem, 5)
 	if err != nil {
 		return nil, err
 	}
