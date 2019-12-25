@@ -43,7 +43,7 @@ func (l *layer) String() string {
 	for y := range l {
 		rows[y] = l[y].String()
 	}
-	return "\n" + strings.Join(rows, "\n")
+	return strings.Join(rows, "\n")
 }
 
 // mergeDown merges l onto l2, replacing any transparent pixels in l with

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/jzimbel/adventofcode-go/color"
 	"github.com/jzimbel/adventofcode-go/input"
@@ -35,8 +36,16 @@ func getArgs() (int, int, bool) {
 
 func printSolution(s *solutions.Solution, year int, day int) {
 	if s != nil {
-		fmt.Println("Answer to part 1:", color.G(s.Part1))
-		fmt.Println("Answer to part 2:", color.G(s.Part2))
+		solution1, solution2 := color.G(s.Part1), color.G(s.Part2)
+		// prepend solutions that have multi-line outputs with a newline
+		if strings.ContainsRune(solution1, '\n') {
+			solution1 = "\n" + solution1
+		}
+		if strings.ContainsRune(solution2, '\n') {
+			solution2 = "\n" + solution2
+		}
+		fmt.Println("Answer to part 1:", solution1)
+		fmt.Println("Answer to part 2:", solution2)
 	} else {
 		fmt.Fprintf(os.Stderr, "No solution for year %d, day %d yet.\n", year, day)
 	}
