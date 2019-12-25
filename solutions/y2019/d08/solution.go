@@ -21,8 +21,8 @@ const (
 )
 
 var colorMap = map[uint8]rune{
-	black:       '\u25A0',
-	white:       '\u25A1',
+	black:       ' ',
+	white:       '\u2588',
 	transparent: ' ',
 }
 
