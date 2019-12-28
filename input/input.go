@@ -38,7 +38,7 @@ func init() {
 	}
 }
 
-// GetUserSessionID reads user's adventofcode.com session id from file, or asks them for it and stores it in a file.
+// getUserSessionID reads user's adventofcode.com session id from file, or asks them for it and stores it in a file.
 func getUserSessionID() (string, error) {
 	f, err := os.Open(userSessionIDPath)
 	if err == nil {
